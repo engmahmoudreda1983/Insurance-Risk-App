@@ -1,3 +1,4 @@
+import plotly.graph_objects as go
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -82,24 +83,72 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
         result = le.inverse_transform(prediction_encoded)[0]
         confidence = np.max(prediction_proba) * 100
 
-        # --- 6. عرض النتيجة للمستخدم ---
-        st.subheader("📊 Final Assessment Result")
+       # --- 6. عرض النتيجة والرسومات للمستخدم ---
+        st.markdown("---")
+        st.subheader("📊 Visual Risk Assessment")
         
         col1, col2 = st.columns(2)
         
+        # تحديد الألوان وقيمة العداد بناءً على النتيجة
+        if result == 'Low':
+            gauge_val = 15
+            gauge_color = "#00CC96" # أخضر
+            status_text = "Safe"
+            st.success("### 🟢 Customer is safe to insure.")
+        elif result == 'Medium':
+            gauge_val = 50
+            gauge_color = "#FECB52" # أصفر
+            status_text = "Warning"
+            st.warning("### 🟡 Proceed with standard checks.")
+        else:
+            gauge_val = 85
+            gauge_color = "#EF553B" # أحمر
+            status_text = "Risky"
+            st.error("### 🔴 Requires manual underwriter review.")
+
+        # 1. رسمة العداد (Gauge Chart)
         with col1:
-            if result == 'Low':
-                st.success(f"### 🟢 Risk Level: **{result} Risk**\nCustomer is safe to insure.")
-            elif result == 'Medium':
-                st.warning(f"### 🟡 Risk Level: **{result} Risk**\nProceed with standard checks.")
-            else:
-                st.error(f"### 🔴 Risk Level: **{result} Risk**\nRequires manual underwriter review.")
-                
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = gauge_val,
+                title = {'text': f"Overall Risk: {status_text}", 'font': {'size': 24}},
+                number = {'font': {'color': gauge_color}, 'suffix': "%"},
+                gauge = {
+                    'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+                    'bar': {'color': gauge_color},
+                    'steps': [
+                        {'range': [0, 33], 'color': "rgba(0, 204, 150, 0.2)"},
+                        {'range': [33, 66], 'color': "rgba(254, 203, 82, 0.2)"},
+                        {'range': [66, 100], 'color': "rgba(239, 85, 59, 0.2)"}],
+                }
+            ))
+            fig_gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
+            st.plotly_chart(fig_gauge, use_container_width=True)
+
+        # 2. رسمة الشبكة العنكبوتية (Radar Chart)
         with col2:
-            st.info(f"### 🎯 AI Confidence: **{confidence:.2f}%**\nBased on PCA feature extraction.")
+            # تحجيم القيم من 0 لـ 100 تقريبياً عشان الرسمة تطلع متناسقة
+            categories = ['Financial Stress', 'Driving Risk', 'Health (BMI)', 'Age Factor', 'Claims History']
+            values = [
+                min(debt_ratio * 100, 100),               # الديون
+                min((traffic_tickets / 5) * 100, 100),    # المخالفات
+                min((bmi / 40) * 100, 100),               # الوزن
+                min((age / 75) * 100, 100),               # العمر
+                min((past_claims / 5) * 100, 100)         # المطالبات
+            ]
             
-        st.markdown("---")
-        st.write("📋 **Customer Input Summary:**")
-        st.dataframe(input_data)
-else:
-    st.info("👈 Please enter the customer's details in the sidebar and click **Analyze Risk Profile** to see the magic happen.")
+            fig_radar = go.Figure(data=go.Scatterpolar(
+              r=values + [values[0]], # قفل الدائرة
+              theta=categories + [categories[0]],
+              fill='toself',
+              line_color=gauge_color
+            ))
+            fig_radar.update_layout(
+              polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+              showlegend=False,
+              height=350, margin=dict(l=40, r=40, t=50, b=20),
+              title={'text': "Customer Risk Breakdown", 'font': {'size': 20}}
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
+            
+        st.info(f"🎯 **AI Confidence Level:** {confidence:.2f}% (Powered by PCA & XGBoost)")
