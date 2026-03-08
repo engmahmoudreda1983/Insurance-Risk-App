@@ -32,8 +32,9 @@ st.markdown("---")
 st.sidebar.header("📝 Customer Information")
 
 with st.sidebar.expander("👤 Personal Details", expanded=True):
-    age = st.sidebar.slider("Age", 18, 75, 35)
-    dependents = st.sidebar.number_input("Dependents (Children/Spouse)", 0, 5, 1)
+    # استخدام st.slider بدلاً من st.sidebar لضمان بقائها داخل القائمة المنسدلة
+    age = st.slider("Age", 18, 75, 35, help="Customer's age in years.")
+    dependents = st.number_input("Dependents (Children/Spouse)", 0, 5, 1, help="Number of individuals depending on the customer's income.")
     
     edu_mapping = {
         1: "1 - High School / No Degree", 
@@ -41,36 +42,36 @@ with st.sidebar.expander("👤 Personal Details", expanded=True):
         3: "3 - Master's Degree", 
         4: "4 - Doctorate / PhD"
     }
-    edu_level = st.sidebar.selectbox("Education Level", options=[1, 2, 3, 4], format_func=lambda x: edu_mapping[x])
+    edu_level = st.selectbox("Education Level", options=[1, 2, 3, 4], format_func=lambda x: edu_mapping[x], help="Select the highest academic degree completed by the customer.")
 
 with st.sidebar.expander("💰 Financial Data", expanded=False):
-    income = st.number_input("Annual Income ($)", 30000, 300000, 70000)
-    credit_score = st.slider("Credit Score", 300, 850, 650)
-    debt_ratio = st.slider("Debt-to-Income Ratio", 0.0, 1.0, 0.3)
-    savings = st.number_input("Savings Amount ($)", 0, 200000, 20000)
+    income = st.number_input("Annual Income ($)", 30000, 300000, 70000, help="Customer's total annual income.")
+    credit_score = st.slider("Credit Score", 300, 850, 650, help="Standard FICO score ranging from 300 (Poor) to 850 (Excellent).")
+    debt_ratio = st.slider("Debt-to-Income Ratio", 0.0, 1.0, 0.3, help="Percentage of monthly gross income that goes toward paying debts (e.g., 0.30 = 30%).")
+    savings = st.number_input("Savings Amount ($)", 0, 200000, 20000, help="Total amount of liquid savings.")
 
 with st.sidebar.expander("❤️ Health & Lifestyle", expanded=False):
-    bmi = st.slider("BMI (Body Mass Index)", 15.0, 50.0, 25.0)
-    smoking = st.selectbox("Smoking Status", [0, 1], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
-    chronic = st.number_input("Chronic Diseases", 0, 5, 0)
-    exercise = st.slider("Exercise Days/Week", 0, 7, 3)
+    bmi = st.slider("BMI (Body Mass Index)", 15.0, 50.0, 25.0, help="Underweight < 18.5, Normal 18.5-24.9, Overweight 25-29.9, Obese > 30.")
+    smoking = st.selectbox("Smoking Status", [0, 1], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker", help="Does the customer currently smoke?")
+    chronic = st.number_input("Chronic Diseases", 0, 5, 0, help="Number of chronic conditions (e.g., Diabetes, Hypertension, Asthma).")
+    exercise = st.slider("Exercise Days/Week", 0, 7, 3, help="Number of days the customer exercises per week.")
     
     st.write("Blood Pressure")
     col_bp1, col_bp2 = st.columns(2)
     with col_bp1:
-        bp_sys = st.number_input("Systolic (Top)", 90, 200, 120)
+        bp_sys = st.number_input("Systolic (Top)", 90, 200, 120, help="Normal is around 120. Elevated is 120-129. High is 130+.")
     with col_bp2:
-        bp_dia = st.number_input("Diastolic (Bottom)", 60, 130, 80)
+        bp_dia = st.number_input("Diastolic (Bottom)", 60, 130, 80, help="Normal is around 80. High is 80+.")
 
 with st.sidebar.expander("📄 Insurance & Asset History", expanded=False):
-    tenure = st.slider("Policy Tenure (Months)", 0, 240, 24)
-    past_claims = st.number_input("Past Claims Count", 0, 10, 0)
-    claims_amount = st.number_input("Total Claims Amount ($)", 0, 50000, 0)
-    traffic_tickets = st.number_input("Traffic Tickets", 0, 10, 0)
-    missed_payments = st.number_input("Missed Payments", 0, 10, 0)
-    property_val = st.number_input("Property Value ($)", 50000, 1000000, 200000)
-    vehicle_age = st.slider("Vehicle Age (Years)", 0, 30, 5)
-    commute_km = st.slider("Daily Commute (km)", 0, 250, 30)
+    tenure = st.slider("Policy Tenure (Months)", 0, 240, 24, help="How long the customer has been insured with the company.")
+    past_claims = st.number_input("Past Claims Count", 0, 10, 0, help="Number of insurance claims filed in the past.")
+    claims_amount = st.number_input("Total Claims Amount ($)", 0, 50000, 0, help="Total monetary value of all past claims.")
+    traffic_tickets = st.number_input("Traffic Tickets", 0, 10, 0, help="Number of traffic violations in the last 3 years.")
+    missed_payments = st.number_input("Missed Payments", 0, 10, 0, help="Number of times the customer missed a premium payment.")
+    property_val = st.number_input("Property Value ($)", 50000, 1000000, 200000, help="Estimated current value of the customer's property/home.")
+    vehicle_age = st.slider("Vehicle Age (Years)", 0, 30, 5, help="Age of the primary vehicle insured.")
+    commute_km = st.slider("Daily Commute (km)", 0, 250, 30, help="Average kilometers driven per day by the customer.")
 
 # --- 5. زر التوقع ومعالجة البيانات ---
 if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
@@ -93,12 +94,12 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
         input_scaled = scaler.transform(input_data)
         input_pca = pca.transform(input_scaled)
         prediction_encoded = xgb_model.predict(input_pca)
-        prediction_proba = xgb_model.predict_proba(input_pca)[0] # Extract 1D array
+        prediction_proba = xgb_model.predict_proba(input_pca)[0] 
         
         result = le.inverse_transform(prediction_encoded)[0]
         confidence = np.max(prediction_proba) * 100
 
-        # السحر الجديد: حساب مؤشر ديناميكي بناءً على احتمالات الموديل
+        # حساب المؤشر الديناميكي
         classes = le.classes_
         proba_dict = dict(zip(classes, prediction_proba))
         
@@ -106,16 +107,14 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
         p_med = proba_dict.get('Medium', 0)
         p_high = proba_dict.get('High', 0)
         
-        # معادلة لحساب السكور من 0 لـ 100 بناءً على ثقة الموديل
         dynamic_score = (p_low * 10) + (p_med * 50) + (p_high * 90)
-        gauge_val = min(max(int(dynamic_score), 0), 100) # تأكيد إنه بين 0 و 100
+        gauge_val = min(max(int(dynamic_score), 0), 100) 
 
         # --- 6. عرض النتيجة والرسومات ---
         st.subheader("📊 Visual Risk Assessment")
         
         col1, col2 = st.columns(2)
         
-        # الألوان والنصوص بناءً على النتيجة
         if result == 'Low':
             gauge_color = "#00CC96" 
             status_text = "Safe"
@@ -148,7 +147,6 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
             st.plotly_chart(fig_gauge, use_container_width=True)
 
         with col2:
-            # السحر الجديد: معادلات أكثر حساسية للشبكة العنكبوتية
             categories = ['Financial Stress', 'Driving Risk', 'Health (BMI)', 'Age Factor', 'Claims History']
             
             val_debt = min((debt_ratio / 0.5) * 100, 100)  
