@@ -26,6 +26,7 @@ This smart application instantly analyzes a customer's personal, financial, heal
 to evaluate their overall insurance risk. It is designed to assist underwriters in making 
 fast, accurate, and data-driven policy decisions.
 """)
+# خلينا خط فاصل واحد بس هنا
 st.markdown("---")
 
 # --- 4. الشريط الجانبي (Sidebar) لإدخال بيانات العميل ---
@@ -35,7 +36,6 @@ with st.sidebar.expander("👤 Personal Details", expanded=True):
     age = st.sidebar.slider("Age", 18, 75, 35)
     dependents = st.sidebar.number_input("Dependents (Children/Spouse)", 0, 5, 1)
     
-    # تحويل أرقام التعليم لنصوص واضحة للمستخدم
     edu_mapping = {
         1: "1 - High School / No Degree", 
         2: "2 - Bachelor's Degree", 
@@ -56,7 +56,6 @@ with st.sidebar.expander("❤️ Health & Lifestyle", expanded=False):
     chronic = st.number_input("Chronic Diseases", 0, 5, 0, help="Number of chronic conditions (e.g., Diabetes, Hypertension, Asthma).")
     exercise = st.slider("Exercise Days/Week", 0, 7, 3)
     
-    # إدخال ضغط الدم بشكل واقعي (انقباضي وانبساطي)
     st.write("Blood Pressure")
     col_bp1, col_bp2 = st.columns(2)
     with col_bp1:
@@ -72,18 +71,14 @@ with st.sidebar.expander("📄 Insurance & Asset History", expanded=False):
     missed_payments = st.number_input("Missed Payments", 0, 10, 0, help="Number of times the customer missed a premium payment.")
     property_val = st.number_input("Property Value ($)", 50000, 1000000, 200000)
     vehicle_age = st.slider("Vehicle Age (Years)", 0, 30, 5)
-    # تعديل المسافة لتكون بالكيلومتر
     commute_km = st.slider("Daily Commute (km)", 0, 250, 30, help="Average kilometers driven per day by the customer.")
 
 # --- 5. زر التوقع ومعالجة البيانات ---
 if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
     with st.spinner('Calculating risk profile...'):
         
-        # تحويل الكيلومتر إلى ميل لأن الموديل تم تدريبه على الميل
         commute_miles = commute_km * 0.621371
         
-        # تجميع الـ 20 متغير في DataFrame بنفس ترتيب التدريب
-        # لاحظ أننا نمرر bp_sys فقط للموديل كما تدرب عليه
         input_data = pd.DataFrame({
             'Age': [age], 'Dependents': [dependents], 'Education_Level': [edu_level],
             'Annual_Income': [income], 'Credit_Score': [credit_score], 'Debt_to_Income_Ratio': [debt_ratio],
@@ -95,40 +90,36 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
             'Property_Value': [property_val], 'Vehicle_Age': [vehicle_age], 'Daily_Commute_Miles': [commute_miles]
         })
 
-        # خط الإنتاج (Pipeline): وزن -> ضغط -> توقع
         input_scaled = scaler.transform(input_data)
         input_pca = pca.transform(input_scaled)
         prediction_encoded = xgb_model.predict(input_pca)
         prediction_proba = xgb_model.predict_proba(input_pca)
         
-        # ترجمة النتيجة لنص
         result = le.inverse_transform(prediction_encoded)[0]
         confidence = np.max(prediction_proba) * 100
 
         # --- 6. عرض النتيجة والرسومات للمستخدم ---
-        st.markdown("---")
+        # شيلنا الخط الفاصل التاني من هنا عشان ميعملش الفراغ
         st.subheader("📊 Visual Risk Assessment")
         
         col1, col2 = st.columns(2)
         
-        # تحديد الألوان وقيمة العداد بناءً على النتيجة
         if result == 'Low':
             gauge_val = 15
-            gauge_color = "#00CC96" # أخضر
+            gauge_color = "#00CC96" 
             status_text = "Safe"
             st.success(f"### 🟢 Customer is safe to insure.")
         elif result == 'Medium':
             gauge_val = 50
-            gauge_color = "#FECB52" # أصفر
+            gauge_color = "#FECB52" 
             status_text = "Warning"
             st.warning(f"### 🟡 Proceed with standard checks.")
         else:
             gauge_val = 85
-            gauge_color = "#EF553B" # أحمر
+            gauge_color = "#EF553B" 
             status_text = "Risky"
             st.error(f"### 🔴 Requires manual underwriter review.")
 
-        # 1. رسمة العداد (Gauge Chart)
         with col1:
             fig_gauge = go.Figure(go.Indicator(
                 mode = "gauge+number",
@@ -147,9 +138,7 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
             fig_gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
             st.plotly_chart(fig_gauge, use_container_width=True)
 
-        # 2. رسمة الشبكة العنكبوتية (Radar Chart)
         with col2:
-            # تحجيم القيم من 0 لـ 100 تقريباً عشان الرسمة تطلع متناسقة
             categories = ['Financial Stress', 'Driving Risk', 'Health (BMI)', 'Age Factor', 'Claims History']
             values = [
                 min(debt_ratio * 100, 100),               
@@ -160,7 +149,7 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
             ]
             
             fig_radar = go.Figure(data=go.Scatterpolar(
-              r=values + [values[0]], # قفل الدائرة
+              r=values + [values[0]], 
               theta=categories + [categories[0]],
               fill='toself',
               line_color=gauge_color
@@ -175,4 +164,5 @@ if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
             
         st.info(f"🎯 **AI Confidence Level:** {confidence:.2f}%")
 else:
+    # الرسالة التوجيهية بتظهر لو الموظف لسه مداسش على الزرار
     st.info("👈 Please enter the customer's details in the sidebar and click **Analyze Risk Profile** to generate the assessment.")
