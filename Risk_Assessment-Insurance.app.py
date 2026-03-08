@@ -32,8 +32,8 @@ st.markdown("---")
 st.sidebar.header("📝 Customer Information")
 
 with st.sidebar.expander("👤 Personal Details", expanded=True):
-    age = st.slider("Age", 18, 75, 35)
-    dependents = st.number_input("Dependents (Children/Spouse)", 0, 5, 1)
+    age = st.sidebar.slider("Age", 18, 75, 35)
+    dependents = st.sidebar.number_input("Dependents (Children/Spouse)", 0, 5, 1)
     
     # تحويل أرقام التعليم لنصوص واضحة للمستخدم
     edu_mapping = {
@@ -42,7 +42,7 @@ with st.sidebar.expander("👤 Personal Details", expanded=True):
         3: "3 - Master's Degree", 
         4: "4 - Doctorate / PhD"
     }
-    edu_level = st.selectbox("Education Level", options=[1, 2, 3, 4], format_func=lambda x: edu_mapping[x], help="Select the highest academic degree completed by the customer.")
+    edu_level = st.sidebar.selectbox("Education Level", options=[1, 2, 3, 4], format_func=lambda x: edu_mapping[x], help="Select the highest academic degree completed by the customer.")
 
 with st.sidebar.expander("💰 Financial Data", expanded=False):
     income = st.number_input("Annual Income ($)", 30000, 300000, 70000)
@@ -55,7 +55,14 @@ with st.sidebar.expander("❤️ Health & Lifestyle", expanded=False):
     smoking = st.selectbox("Smoking Status", [0, 1], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
     chronic = st.number_input("Chronic Diseases", 0, 5, 0, help="Number of chronic conditions (e.g., Diabetes, Hypertension, Asthma).")
     exercise = st.slider("Exercise Days/Week", 0, 7, 3)
-    blood_pressure = st.slider("Blood Pressure (Systolic)", 90, 200, 120, help="Normal is around 120. Elevated is 120-129. High is 130+.")
+    
+    # إدخال ضغط الدم بشكل واقعي (انقباضي وانبساطي)
+    st.write("Blood Pressure")
+    col_bp1, col_bp2 = st.columns(2)
+    with col_bp1:
+        bp_sys = st.number_input("Systolic (Top)", 90, 200, 120, help="Normal is around 120.")
+    with col_bp2:
+        bp_dia = st.number_input("Diastolic (Bottom)", 60, 130, 80, help="Normal is around 80.")
 
 with st.sidebar.expander("📄 Insurance & Asset History", expanded=False):
     tenure = st.slider("Policy Tenure (Months)", 0, 240, 24, help="How long the customer has been insured with the company.")
@@ -65,21 +72,27 @@ with st.sidebar.expander("📄 Insurance & Asset History", expanded=False):
     missed_payments = st.number_input("Missed Payments", 0, 10, 0, help="Number of times the customer missed a premium payment.")
     property_val = st.number_input("Property Value ($)", 50000, 1000000, 200000)
     vehicle_age = st.slider("Vehicle Age (Years)", 0, 30, 5)
-    commute = st.slider("Daily Commute (Miles)", 0, 150, 20, help="Average miles driven per day by the customer.")
+    # تعديل المسافة لتكون بالكيلومتر
+    commute_km = st.slider("Daily Commute (km)", 0, 250, 30, help="Average kilometers driven per day by the customer.")
 
 # --- 5. زر التوقع ومعالجة البيانات ---
 if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
     with st.spinner('Calculating risk profile...'):
+        
+        # تحويل الكيلومتر إلى ميل لأن الموديل تم تدريبه على الميل
+        commute_miles = commute_km * 0.621371
+        
         # تجميع الـ 20 متغير في DataFrame بنفس ترتيب التدريب
+        # لاحظ أننا نمرر bp_sys فقط للموديل كما تدرب عليه
         input_data = pd.DataFrame({
             'Age': [age], 'Dependents': [dependents], 'Education_Level': [edu_level],
             'Annual_Income': [income], 'Credit_Score': [credit_score], 'Debt_to_Income_Ratio': [debt_ratio],
             'Savings_Amount': [savings], 'BMI': [bmi], 'Smoking_Status': [smoking],
             'Chronic_Diseases': [chronic], 'Exercise_Days_Per_Week': [exercise],
-            'Blood_Pressure_Sys': [blood_pressure], 'Policy_Tenure_Months': [tenure],
+            'Blood_Pressure_Sys': [bp_sys], 'Policy_Tenure_Months': [tenure],
             'Past_Claims_Count': [past_claims], 'Total_Claims_Amount': [claims_amount],
             'Traffic_Tickets': [traffic_tickets], 'Missed_Payments': [missed_payments],
-            'Property_Value': [property_val], 'Vehicle_Age': [vehicle_age], 'Daily_Commute_Miles': [commute]
+            'Property_Value': [property_val], 'Vehicle_Age': [vehicle_age], 'Daily_Commute_Miles': [commute_miles]
         })
 
         # خط الإنتاج (Pipeline): وزن -> ضغط -> توقع
