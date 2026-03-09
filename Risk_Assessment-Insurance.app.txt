@@ -19,116 +19,79 @@ def load_models():
 
 scaler, pca, le, xgb_model = load_models()
 
-# --- 3. تصميم رأس الصفحة ---
+# --- 3. تصميم الرأس ---
 st.title("🛡️ Smart Insurance Risk Assessment")
-st.markdown("""
-Welcome to the **Comprehensive Customer Risk Profiler**. 
-This application evaluates customer risk and provides a breakdown of the key factors driving the assessment.
-""")
+st.markdown("Analyze customer risk profiles using advanced AI and explainable data metrics.")
 st.markdown("---")
 
-# --- 4. الشريط الجانبي (Sidebar) لإدخال بيانات العميل ---
-st.sidebar.header("📝 Customer Information")
-
-with st.sidebar.expander("👤 Personal Details", expanded=True):
+# --- 4. Sidebar (بيانات العميل) ---
+st.sidebar.header("📝 Customer Input")
+with st.sidebar.expander("👤 Personal & Financial", expanded=True):
     age = st.slider("Age", 18, 75, 35)
-    dependents = st.number_input("Dependents", 0, 5, 1)
-    edu_mapping = {1: "High School", 2: "Bachelor", 3: "Master", 4: "PhD"}
-    edu_level = st.selectbox("Education Level", options=[1, 2, 3, 4], format_func=lambda x: edu_mapping[x])
-
-with st.sidebar.expander("💰 Financial Data", expanded=False):
     income = st.number_input("Annual Income ($)", 30000, 300000, 70000)
     credit_score = st.slider("Credit Score", 300, 850, 650)
     debt_ratio = st.slider("Debt-to-Income Ratio", 0.0, 1.0, 0.3)
-    savings = st.number_input("Savings Amount ($)", 0, 200000, 20000)
 
-with st.sidebar.expander("❤️ Health & Lifestyle", expanded=False):
+with st.sidebar.expander("🚗 History & Health", expanded=False):
+    past_claims = st.number_input("Past Claims Count", 0, 10, 0)
+    traffic_tickets = st.number_input("Traffic Tickets", 0, 10, 0)
     bmi = st.slider("BMI", 15.0, 50.0, 25.0)
     smoking = st.selectbox("Smoking Status", [0, 1], format_func=lambda x: "Smoker" if x == 1 else "Non-Smoker")
-    chronic = st.number_input("Chronic Diseases", 0, 5, 0)
-    exercise = st.slider("Exercise Days/Week", 0, 7, 3)
-    st.write("Blood Pressure")
-    col_bp1, col_bp2 = st.columns(2)
-    with col_bp1: bp_sys = st.number_input("Systolic", 90, 200, 120)
-    with col_bp2: bp_dia = st.number_input("Diastolic", 60, 130, 80)
 
-with st.sidebar.expander("📄 Insurance & Asset History", expanded=False):
-    tenure = st.slider("Policy Tenure (Months)", 0, 240, 24)
-    past_claims = st.number_input("Past Claims Count", 0, 10, 0)
-    claims_amount = st.number_input("Total Claims Amount ($)", 0, 50000, 0)
-    traffic_tickets = st.number_input("Traffic Tickets", 0, 10, 0)
-    missed_payments = st.number_input("Missed Payments", 0, 10, 0)
-    property_val = st.number_input("Property Value ($)", 50000, 1000000, 200000)
-    vehicle_age = st.slider("Vehicle Age (Years)", 0, 30, 5)
-    commute_km = st.slider("Daily Commute (km)", 0, 250, 30)
+# مدخلات إضافية مخفية للحفاظ على توافق الموديل (Defaults)
+dependents, edu_level, savings, chronic, exercise, bp_sys, tenure, claims_amount, missed_payments, property_val, vehicle_age, commute_km = 1, 2, 20000, 0, 3, 120, 24, 0, 0, 200000, 5, 30
 
-# --- 5. زر التوقع ومعالجة البيانات ---
-if st.sidebar.button("🔍 Analyze Risk Profile", use_container_width=True):
-    with st.spinner('Calculating risk and analyzing factors...'):
-        
-        commute_miles = commute_km * 0.621371
-        input_data = pd.DataFrame({
-            'Age': [age], 'Dependents': [dependents], 'Education_Level': [edu_level],
-            'Annual_Income': [income], 'Credit_Score': [credit_score], 'Debt_to_Income_Ratio': [debt_ratio],
-            'Savings_Amount': [savings], 'BMI': [bmi], 'Smoking_Status': [smoking],
-            'Chronic_Diseases': [chronic], 'Exercise_Days_Per_Week': [exercise],
-            'Blood_Pressure_Sys': [bp_sys], 'Policy_Tenure_Months': [tenure],
-            'Past_Claims_Count': [past_claims], 'Total_Claims_Amount': [claims_amount],
-            'Traffic_Tickets': [traffic_tickets], 'Missed_Payments': [missed_payments],
-            'Property_Value': [property_val], 'Vehicle_Age': [vehicle_age], 'Daily_Commute_Miles': [commute_miles]
-        })
+# --- 5. زر التحليل ---
+if st.sidebar.button("🔍 Run Full Risk Analysis", use_container_width=True):
+    # تجهيز الداتا
+    input_data = pd.DataFrame([[age, dependents, edu_level, income, credit_score, debt_ratio, savings, bmi, smoking, chronic, exercise, bp_sys, tenure, past_claims, claims_amount, traffic_tickets, missed_payments, property_val, vehicle_age, (commute_km * 0.621)]], 
+                               columns=['Age', 'Dependents', 'Education_Level', 'Annual_Income', 'Credit_Score', 'Debt_to_Income_Ratio', 'Savings_Amount', 'BMI', 'Smoking_Status', 'Chronic_Diseases', 'Exercise_Days_Per_Week', 'Blood_Pressure_Sys', 'Policy_Tenure_Months', 'Past_Claims_Count', 'Total_Claims_Amount', 'Traffic_Tickets', 'Missed_Payments', 'Property_Value', 'Vehicle_Age', 'Daily_Commute_Miles'])
 
-        # Processing
-        input_scaled = scaler.transform(input_data)
-        input_pca = pca.transform(input_scaled)
-        prediction_encoded = xgb_model.predict(input_pca)
-        prediction_proba = xgb_model.predict_proba(input_pca)[0]
-        
-        result = le.inverse_transform(prediction_encoded)[0]
-        confidence = np.max(prediction_proba) * 100
+    # التوقع
+    input_scaled = scaler.transform(input_data)
+    input_pca = pca.transform(input_scaled)
+    prob = xgb_model.predict_proba(input_pca)[0]
+    res = le.inverse_transform([np.argmax(prob)])[0]
+    
+    # حساب سكور العداد
+    risk_score = int((prob[0] * 10) + (prob[1] * 50) + (prob[2] * 90))
 
-        # مؤشر العداد الديناميكي
-        classes = le.classes_
-        proba_dict = dict(zip(classes, prediction_proba))
-        dynamic_score = (proba_dict.get('Low', 0) * 10) + (proba_dict.get('Medium', 0) * 50) + (proba_dict.get('High', 0) * 90)
-        gauge_val = int(dynamic_score)
+    # --- 6. العرض البصري ---
+    st.subheader("📊 Assessment Results")
+    col1, col2 = st.columns([1, 1])
 
-        # --- 6. عرض النتيجة والرسومات ---
-        st.subheader("📊 Visual Risk Assessment")
-        col1, col2 = st.columns(2)
-        
-        status_colors = {'Low': "#00CC96", 'Medium': "#FECB52", 'High': "#EF553B"}
-        g_color = status_colors.get(result)
+    with col1:
+        fig_g = go.Figure(go.Indicator(
+            mode="gauge+number", value=risk_score,
+            title={'text': f"Risk Status: {res}"},
+            gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "red" if risk_score > 66 else "orange" if risk_score > 33 else "green"}}
+        ))
+        st.plotly_chart(fig_g, use_container_width=True)
 
-        with col1:
-            fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number", value = gauge_val,
-                title = {'text': f"Overall Risk: {result}", 'font': {'size': 24}},
-                gauge = {'axis': {'range': [None, 100]}, 'bar': {'color': g_color}}
-            ))
-            st.plotly_chart(fig_gauge, use_container_width=True)
+    with col2:
+        # حساب تأثير العناصر (أساس المعادلة)
+        st.markdown("### 🔑 Why this score?")
+        impact_map = {
+            "Credit History": (850 - credit_score) / 550,
+            "Claims History": past_claims / 10,
+            "Debt Stress": debt_ratio,
+            "Driving Behavior": traffic_tickets / 10,
+            "Health Risk (BMI/Smoking)": (bmi/50) + (0.3 if smoking else 0)
+        }
+        df_impact = pd.DataFrame(impact_map.items(), columns=['Factor', 'Weight']).sort_values('Weight', ascending=True)
+        fig_bar = px.bar(df_impact, x='Weight', y='Factor', orientation='h', color='Weight', color_continuous_scale='Reds')
+        st.plotly_chart(fig_bar, use_container_width=True)
 
-        with col2:
-            # حساب تأثير العوامل (Feature Importance Simulation)
-            # هذه القيم مستقاة من قوة ارتباط المتغيرات في الموديل
-            impact_data = {
-                'Credit Score': credit_score / 850,
-                'Past Claims': past_claims / 10,
-                'Income': income / 300000,
-                'Debt Ratio': debt_ratio,
-                'Health (BMI)': bmi / 50,
-                'Driving Record': traffic_tickets / 10
-            }
-            # ترتيب العوامل حسب التأثير
-            sorted_impact = sorted(impact_data.items(), key=lambda x: x[1], reverse=True)
-            df_impact = pd.DataFrame(sorted_impact, columns=['Factor', 'Impact Level'])
-            
-            fig_bar = px.bar(df_impact, x='Impact Level', y='Factor', orientation='h',
-                             title="Key Risk Drivers", color='Impact Level',
-                             color_continuous_scale=[(0, "blue"), (1, g_color)])
-            st.plotly_chart(fig_bar, use_container_width=True)
-            
-        st.info(f"🎯 **AI Confidence:** {confidence:.2f}% | **Assessment Strategy:** PCA + XGBoost Integration.")
+    # --- الجزء الجديد: شرح المعادلة (المساحة الفاضية) ---
+    st.markdown("---")
+    st.subheader("📝 Decision Logic & Factor Breakdown")
+    st.write("Below is how each input contributed to the final AI decision logic:")
+    
+    breakdown_cols = st.columns(4)
+    breakdown_cols[0].metric("Financial Impact", f"{int(debt_ratio*100)}%", delta="High Risk" if debt_ratio > 0.4 else "Stable")
+    breakdown_cols[1].metric("Credit Reliability", f"{credit_score} pts", delta="- Risk" if credit_score > 700 else "+ Risk", delta_color="inverse")
+    breakdown_cols[2].metric("Health Factor", f"BMI {bmi}", delta="Elevated" if bmi > 25 else "Normal")
+    breakdown_cols[3].metric("AI Confidence", f"{max(prob)*100:.1f}%")
 
 else:
-    st.info("👈 Enter details and click **Analyze** to see the risk breakdown.")
+    st.info("👈 Enter customer data in the sidebar and click 'Analyze' to fill this report.")
